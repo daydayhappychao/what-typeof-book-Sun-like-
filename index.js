@@ -8,24 +8,24 @@ var mongoose = require('mongoose'),
     DB_URL = 'mongodb://localhost:27017/sentence';
 
 
-mongoose.connect(DB_URL);
+// mongoose.connect(DB_URL);
 
-mongoose.connection.on('connected', function () {    
-    console.log('Mongoose connection open to ' + DB_URL);  
-});    
-/**
- * 连接异常
- */
-mongoose.connection.on('error',function (err) {    
-    console.log('Mongoose connection error: ' + err);  
-});    
- 
-/**
- * 连接断开
- */
-mongoose.connection.on('disconnected', function () {    
-    console.log('Mongoose connection disconnected');  
-});
+// mongoose.connection.on('connected', function () {
+//     console.log('Mongoose connection open to ' + DB_URL);
+// });
+// /**
+//  * 连接异常
+//  */
+// mongoose.connection.on('error', function (err) {
+//     console.log('Mongoose connection error: ' + err);
+// });
+
+// /**
+//  * 连接断开
+//  */
+// mongoose.connection.on('disconnected', function () {
+//     console.log('Mongoose connection disconnected');
+// });
 
 
 var appKey = `z1R3l4E8U20nol9i4YdeapPFlXVGfzkWjRrBCS0f`
@@ -49,6 +49,24 @@ var url = `http://api.ltp-cloud.com/analysis/`
 
 var bookRoot = path.join(__dirname, 'booksSun')
 
+
+var limit = 2 //同时发起请求数量
+var currentReq = 0 //请求计数器
+function setRequest(text) {
+    if (currentReq < limit) {
+        console.log(text)
+        console.log(encodeURI(text))
+        console.log(currentReq)
+        currentReq++
+        request(`http://api.ltp-cloud.com/analysis/?api_key=z1R3l4E8U20nol9i4YdeapPFlXVGfzkWjRrBCS0f&text=作者:顾吉珏&pattern=pos&format=json`, function (err, res, body) {
+            currentReq--
+            console.log(12222)
+            console.log(JSON.parse(body))
+        })
+    } else {
+        setTimeout(setRequest.bind(null, text), 200)
+    }
+}
 // 异步列出目录下的所有文件
 rd.read(bookRoot, function (err, files) {
     if (err) throw err;
@@ -56,10 +74,14 @@ rd.read(bookRoot, function (err, files) {
     files.map(v => {
         if (v[0] !== '.') {
             var content = fs.readFile(v, function (err, data) {
-                if (typeof data!=='undefined') {
+                if (typeof data !== 'undefined') {
                     // console.log(typeof data)
                     var _data = iconv.decode(data, 'GBK')
-                    console.log(_data)
+                    var sentence = _data.split('\n')
+                    sentence.map(v => {
+                        if (v.trim() && (!v.trim().includes('www')))
+                            setRequest(v)
+                    })
                 }
             })
         }
